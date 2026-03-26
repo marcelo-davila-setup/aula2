@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agente IA · Marcelo Automações</title>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Syne:wght@400;700;800&family=Crimson+Pro:ital,wght@0,300;1,300&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+  --bg:       #070D14;
+  --bg2:      #0C1520;
+  --card:     #0F1D2E;
+  --border:   rgba(99,179,237,0.15);
+  --gold:     #F5C842;
+  --gold2:    #E8A800;
+  --blue:     #63B3ED;
+  --blue2:    #2B7FBF;
+  --green:    #48BB78;
+  --green2:   #276749;
+  --text:     #E8F4FF;
+  --muted:    #8BAAC5;
+  --wpp:      #25D366;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── FUNDO ANIMADO ── */
+.bg-orbs {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+}
+.orb {
+  position: absolute; border-radius: 50%;
+  filter: blur(80px); opacity: 0.18;
+  animation: drift linear infinite;
+}
+.orb1 { width:500px; height:500px; background:var(--blue);  top:-100px; left:-150px; animation-duration:18s; }
+.orb2 { width:400px; height:400px; background:var(--gold);  bottom:-80px; right:-100px; animation-duration:22s; animation-direction:reverse; }
+.orb3 { width:300px; height:300px; background:var(--green); top:40%; left:60%; animation-duration:15s; }
+@keyframes drift {
+  0%,100% { transform: translate(0,0) scale(1); }
+  33%      { transform: translate(30px,-40px) scale(1.08); }
+  66%      { transform: translate(-20px,30px) scale(0.95); }
+}
+
+/* ── TELA DE BOAS-VINDAS (coleta nome) ── */
+#tela-nome {
+  position: fixed; inset: 0; z-index: 100;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  transition: opacity 0.6s, transform 0.6s;
+}
+#tela-nome.saindo {
+  opacity: 0; transform: scale(0.95);
+  pointer-events: none;
+}
+.nome-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-top: 2px solid var(--gold);
+  border-radius: 28px;
+  padding: 52px 48px 48px;
+  max-width: 560px; width: 100%;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.03) inset;
+  position: relative; z-index: 1;
+  text-align: center;
+}
+.robo-icon {
+  font-size: 64px; margin-bottom: 20px;
+  animation: flutuaRobo 3s ease-in-out infinite;
+  display: block;
+}
+@keyframes flutuaRobo {
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+.nome-card h2 {
+  font-family: 'Caveat', cursive;
+  font-size: 48px; font-weight: 700;
+  color: var(--gold);
+  line-height: 1.1; margin-bottom: 10px;
+}
+.nome-card .subtitulo-entrada {
+  font-family: 'Crimson Pro', serif;
+  font-style: italic;
+  font-size: 20px; color: var(--muted);
+  margin-bottom: 32px; line-height: 1.5;
+}
+.campo-nome {
+  width: 100%;
+  background: rgba(99,179,237,0.07);
+  border: 1.5px solid rgba(99,179,237,0.25);
+  border-radius: 14px;
+  padding: 16px 20px;
+  font-family: 'Syne', sans-serif;
+  font-size: 22px; font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  margin-bottom: 20px;
+}
+.campo-nome::placeholder { color: rgba(139,170,197,0.5); font-weight: 400; }
+.campo-nome:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(245,200,66,0.15);
+}
+.btn-entrar {
+  width: 100%;
+  background: linear-gradient(135deg, var(--gold) 0%, var(--gold2) 100%);
+  color: #1a0f00;
+  font-family: 'Syne', sans-serif;
+  font-size: 22px; font-weight: 800;
+  border: none; border-radius: 14px;
+  padding: 16px 32px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  letter-spacing: 0.5px;
+}
+.btn-entrar:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(245,200,66,0.4);
+}
+.btn-entrar:active { transform: translateY(0); }
+.nota-geo {
+  margin-top: 16px;
+  font-size: 13px; color: var(--muted);
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+
+/* ── CONTEÚDO PRINCIPAL ── */
+#conteudo {
+  display: none;
+  position: relative; z-index: 1;
+  max-width: 860px; margin: 0 auto;
+  padding: 60px 28px 80px;
+}
+#conteudo.visivel { display: block; }
+
+/* ── HEADER ── */
+.header-saudacao {
+  text-align: center; margin-bottom: 56px;
+  animation: fadeUp 0.7s ease forwards;
+}
+.tag-ia {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(245,200,66,0.1);
+  border: 1px solid rgba(245,200,66,0.3);
+  color: var(--gold);
+  font-size: 13px; font-weight: 700; letter-spacing: 2px;
+  padding: 6px 16px; border-radius: 50px;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+}
+.dot-live {
+  width: 7px; height: 7px; background: var(--green);
+  border-radius: 50%;
+  animation: pisca 1.4s ease-in-out infinite;
+}
+@keyframes pisca { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+.saudacao-nome {
+  font-family: 'Caveat', cursive;
+  font-size: 72px; font-weight: 700; line-height: 1;
+  color: transparent;
+  background: linear-gradient(135deg, var(--gold) 0%, #FFE07A 50%, var(--gold2) 100%);
+  -webkit-background-clip: text; background-clip: text;
+  margin-bottom: 16px;
+}
+.saudacao-sub {
+  font-family: 'Crimson Pro', serif;
+  font-style: italic; font-size: 22px;
+  color: var(--muted); line-height: 1.6;
+  max-width: 520px; margin: 0 auto;
+}
+.geo-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(72,187,120,0.1);
+  border: 1px solid rgba(72,187,120,0.25);
+  color: var(--green); font-size: 14px; font-weight: 700;
+  padding: 5px 14px; border-radius: 50px;
+  margin-top: 14px;
+}
+
+/* ── CARDS ── */
+.cards { display: flex; flex-direction: column; gap: 20px; margin-bottom: 40px; }
+
+.card-bloco {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 36px 40px;
+  position: relative; overflow: hidden;
+  opacity: 0; transform: translateY(24px);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.card-bloco.visivel {
+  animation: fadeUp 0.55s ease forwards;
+}
+.card-bloco:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.4);
+}
+.card-bloco::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  border-radius: 24px 24px 0 0;
+}
+.card-gold::before   { background: linear-gradient(90deg, var(--gold), var(--gold2)); }
+.card-blue::before   { background: linear-gradient(90deg, var(--blue), var(--blue2)); }
+.card-green::before  { background: linear-gradient(90deg, var(--green), var(--green2)); }
+.card-purple::before { background: linear-gradient(90deg, #A78BFA, #6D28D9); }
+
+.card-numero {
+  font-family: 'Caveat', cursive;
+  font-size: 13px; font-weight: 700; letter-spacing: 3px;
+  text-transform: uppercase; margin-bottom: 14px;
+  opacity: 0.5;
+}
+.card-gold   .card-numero { color: var(--gold); }
+.card-blue   .card-numero { color: var(--blue); }
+.card-green  .card-numero { color: var(--green); }
+.card-purple .card-numero { color: #A78BFA; }
+
+.card-titulo {
+  font-family: 'Caveat', cursive;
+  font-size: 48px; font-weight: 700;
+  line-height: 1.05; margin-bottom: 14px;
+}
+.card-gold   .card-titulo { color: #FFE9A0; }
+.card-blue   .card-titulo { color: #BEE3F8; }
+.card-green  .card-titulo { color: #C6F6D5; }
+.card-purple .card-titulo { color: #EDE9FE; }
+
+.card-corpo {
+  font-family: 'Crimson Pro', serif;
+  font-size: 22px; line-height: 1.65;
+  color: #A8C5DC; font-weight: 300;
+}
+.card-corpo strong {
+  color: var(--text); font-weight: 400;
+}
+.nome-inline {
+  color: var(--gold); font-style: italic; font-weight: 400;
+}
+
+/* Chips dentro dos cards */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: 'Syne', sans-serif;
+  font-size: 13px; font-weight: 700;
+  padding: 5px 13px; border-radius: 50px;
+}
+.chip-v  { background:rgba(167,139,250,0.12); color:#C4B5FD; border:1px solid rgba(167,139,250,0.2); }
+.chip-t  { background:rgba(99,179,237,0.12);  color:#90CDF4; border:1px solid rgba(99,179,237,0.2); }
+.chip-i  { background:rgba(245,200,66,0.12);  color:#F6E05E; border:1px solid rgba(245,200,66,0.2); }
+.chip-c  { background:rgba(72,187,120,0.12);  color:#9AE6B4; border:1px solid rgba(72,187,120,0.2); }
+
+/* Caixa de atenção */
+.aviso-box {
+  background: rgba(245,200,66,0.06);
+  border: 1px solid rgba(245,200,66,0.2);
+  border-left: 4px solid var(--gold);
+  border-radius: 0 14px 14px 0;
+  padding: 18px 22px;
+  margin-top: 18px;
+}
+.aviso-box p {
+  font-family: 'Syne', sans-serif;
+  font-size: 15px; line-height: 1.6;
+  color: #D4A800;
+}
+.aviso-box p strong { color: var(--gold); }
+
+/* ── BOTÃO WHATSAPP ── */
+.wpp-section {
+  text-align: center;
+  opacity: 0;
+  animation: fadeUp 0.6s ease 1.2s forwards;
+}
+.wpp-instrucao {
+  font-family: 'Caveat', cursive;
+  font-size: 36px; font-weight: 700;
+  color: var(--muted); margin-bottom: 24px;
+  line-height: 1.3;
+}
+.wpp-instrucao span { color: var(--green); }
+
+.btn-wpp {
+  display: inline-flex; align-items: center; gap: 16px;
+  background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+  color: #fff;
+  font-family: 'Syne', sans-serif;
+  font-size: 22px; font-weight: 800;
+  padding: 20px 40px;
+  border-radius: 60px;
+  text-decoration: none;
+  box-shadow: 0 8px 32px rgba(37,211,102,0.35);
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative; overflow: hidden;
+}
+.btn-wpp::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.12), transparent);
+  border-radius: 60px;
+}
+.btn-wpp:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 14px 40px rgba(37,211,102,0.5);
+}
+.btn-wpp svg { flex-shrink: 0; }
+
+.wpp-dica {
+  margin-top: 16px;
+  font-family: 'Crimson Pro', serif;
+  font-style: italic;
+  font-size: 18px; color: var(--muted);
+}
+.wpp-dica .nome-dica { color: var(--gold); font-style: normal; font-weight: 400; }
+
+/* Número direto */
+.numero-direto {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-top: 20px;
+  background: rgba(37,211,102,0.08);
+  border: 1px solid rgba(37,211,102,0.2);
+  color: var(--green); font-family: 'Syne', sans-serif;
+  font-size: 18px; font-weight: 700;
+  padding: 10px 22px; border-radius: 50px;
+}
+
+/* ── RODAPÉ ── */
+.rodape {
+  text-align: center; margin-top: 60px;
+  opacity: 0; animation: fadeUp 0.6s ease 1.5s forwards;
+}
+.rodape-linha {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(99,179,237,0.2), transparent);
+  margin-bottom: 24px;
+}
+.rodape p {
+  font-family: 'Crimson Pro', serif;
+  font-style: italic; font-size: 17px;
+  color: rgba(139,170,197,0.4);
+}
+
+/* ── ANIMAÇÕES ── */
+@keyframes fadeUp {
+  from { opacity:0; transform: translateY(24px); }
+  to   { opacity:1; transform: translateY(0); }
+}
+
+/* Responsivo */
+@media (max-width:640px) {
+  .nome-card { padding: 40px 24px; }
+  .nome-card h2 { font-size: 38px; }
+  .saudacao-nome { font-size: 52px; }
+  .card-bloco { padding: 28px 24px; }
+  .card-titulo { font-size: 36px; }
+  .card-corpo { font-size: 19px; }
+  .btn-wpp { font-size: 18px; padding: 16px 28px; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-orbs">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     TELA 1 — COLETA DE NOME
+════════════════════════════════════════ -->
+<div id="tela-nome">
+  <div class="nome-card">
+    <span class="robo-icon">🤖</span>
+    <h2>Ei, espera aí!</h2>
+    <p class="subtitulo-entrada">
+      Antes de te apresentar esse negócio todo,<br>
+      me diz uma coisa rápida...
+    </p>
+    <input
+      type="text"
+      id="input-nome"
+      class="campo-nome"
+      placeholder="Qual é o seu nome?"
+      maxlength="40"
+      autocomplete="off"
+    />
+    <button class="btn-entrar" onclick="entrar()">
+      Quero conhecer o Agente →
+    </button>
+    <p class="nota-geo">
+      <span>📍</span> Detectando sua localização para personalizar...
+    </p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     CONTEÚDO PRINCIPAL
+════════════════════════════════════════ -->
+<div id="conteudo">
+
+  <!-- HEADER -->
+  <div class="header-saudacao">
+    <div class="tag-ia">
+      <div class="dot-live"></div>
+      Agente IA · Online agora
+    </div>
+    <div class="saudacao-nome" id="titulo-saudacao">Olá, !</div>
+    <p class="saudacao-sub" id="sub-saudacao">
+      Que bom te ver por aqui. Preparei tudo isso especialmente pra você.
+    </p>
+    <div class="geo-pill" id="geo-pill">
+      <span>📍</span> <span id="geo-texto">Detectando...</span>
+    </div>
+  </div>
+
+  <!-- CARDS -->
+  <div class="cards">
+
+    <!-- Card 1 -->
+    <div class="card-bloco card-gold" id="card1">
+      <div class="card-numero">01 · O que é isso?</div>
+      <div class="card-titulo">Mas calma, <span id="nome-card1"></span>…</div>
+      <div class="card-corpo">
+        O modelo de Agente que você viu no vídeo foi usado <strong>apenas como exemplo</strong>.
+        No nosso caso, a coisa é bem mais específica — e muito mais útil pra você.
+      </div>
+    </div>
+
+    <!-- Card 2 -->
+    <div class="card-bloco card-blue" id="card2">
+      <div class="card-numero">02 · O que esse Agente faz por você</div>
+      <div class="card-titulo">Seu assistente pessoal, <span id="nome-card2"></span></div>
+      <div class="card-corpo">
+        Esse Agente foi treinado para te ajudar com:
+        <strong> copywriting</strong>, <strong>tráfego pago</strong> e
+        <strong>dúvidas sobre o curso</strong> — tudo no mesmo lugar.
+      </div>
+      <div class="chips">
+        <span class="chip chip-v">🎙️ Entende voz</span>
+        <span class="chip chip-t">💬 Entende texto</span>
+        <span class="chip chip-i">🖼️ Entende imagem</span>
+        <span class="chip chip-c">⚡ Via n8n · 24h</span>
+      </div>
+    </div>
+
+    <!-- Card 3 -->
+    <div class="card-bloco card-green" id="card3">
+      <div class="card-numero">03 · Pode pedir do jeito que quiser</div>
+      <div class="card-titulo">Tem algo específico em mente?</div>
+      <div class="card-corpo">
+        <span id="nome-card3" class="nome-inline"></span>, se quiser que o Agente elabore
+        algo <strong>especificamente pra você</strong> — uma copy, um anúncio, uma resposta
+        para aluno — é só falar. <strong>Estou à disposição no mesmo número</strong> que
+        pedi para os(as) senhores(as) me passarem seu contato para adicionar na minha stack.
+      </div>
+    </div>
+
+    <!-- Card 4 — Resumo / instrução -->
+    <div class="card-bloco card-purple" id="card4">
+      <div class="card-numero">04 · Resumo prático · leia com atenção</div>
+      <div class="card-titulo" style="color:#EDE9FE;">É simples assim, <span id="nome-card4"></span>:</div>
+      <div class="card-corpo" style="color:#C4B5FD;">
+        Clica no link abaixo e manda a mensagem:<br>
+        <strong style="color:#fff;font-size:26px;font-family:'Caveat',cursive;display:block;margin:12px 0;">
+          "Marcelo, quero esse número para IA."
+        </strong>
+        Simples, rápido, sem complicação.
+      </div>
+      <div class="aviso-box">
+        <p>
+          ⚠️ <strong>Atenção, <span id="nome-aviso"></span>:</strong>
+          Não coloque seu número pessoal — caso contrário, as pessoas que entrarem
+          em contato com você acessam a IA diretamente.
+          <strong>Recomendo um chip ou número novo.</strong>
+        </p>
+      </div>
+    </div>
+
+  </div><!-- /cards -->
+
+  <!-- BOTÃO WHATSAPP -->
+  <div class="wpp-section">
+    <p class="wpp-instrucao">
+      Pronto, <span id="nome-wpp"></span>?<br>
+      Clica aqui e manda a mensagem 👇
+    </p>
+
+    <a
+      id="btn-wpp"
+      class="btn-wpp"
+      href="https://wa.me/5531987938874?text=Marcelo%2C%20quero%20esse%20n%C3%BAmero%20para%20IA."
+      target="_blank"
+    >
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+      </svg>
+      Falar com Marcelo agora
+    </a>
+
+    <p class="wpp-dica">
+      A mensagem já vem preenchida pra você, <span class="nome-dica" id="nome-dica-wpp"></span> 😉
+    </p>
+
+    <div class="numero-direto">
+      <span>📱</span> +55 31 98793-8874
+    </div>
+  </div>
+
+  <!-- RODAPÉ -->
+  <div class="rodape">
+    <div class="rodape-linha"></div>
+    <p>Marcelo Automações · @marceloagentedigital · Vale do Aço, MG</p>
+  </div>
+
+</div><!-- /conteudo -->
+
+<script>
+// ─── ESTADO ───────────────────────────────────────────
+let nomeUsuario = '';
+let cidadeUsuario = '';
+
+// ─── GEOLOCALIZAÇÃO (2 APIs em cascata sem falha) ─────
+async function detectarLocalizacao() {
+  // API 1: ipapi.co
+  try {
+    const r = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(4000) });
+    if (r.ok) {
+      const d = await r.json();
+      if (d.city) return construirGeo(d.city, d.region, d.country_name);
+    }
+  } catch(_) {}
+
+  // API 2: ip-api.com (fallback)
+  try {
+    const r = await fetch('http://ip-api.com/json/?fields=city,regionName,country,status', { signal: AbortSignal.timeout(4000) });
+    if (r.ok) {
+      const d = await r.json();
+      if (d.status === 'success' && d.city) return construirGeo(d.city, d.regionName, d.country);
+    }
+  } catch(_) {}
+
+  return null;
+}
+
+function construirGeo(cidade, estado, pais) {
+  cidadeUsuario = cidade;
+  // Só mostra estado se for Brasil
+  if (pais && pais.toLowerCase().includes('braz')) return `${cidade}, ${estado}`;
+  return `${cidade}, ${pais}`;
+}
+
+// Saudações regionais brasileiras por estado
+const saudacoesRegionais = {
+  'Minas Gerais':        ['Uai, que saudade!', 'Ô de casa!', 'Bão demais!'],
+  'São Paulo':           ['Que mó surpresa!', 'Valeu a visita!', 'Arrasou!'],
+  'Rio de Janeiro':      ['Que barato!', 'Arrasou, mana!', 'Boa pinta!'],
+  'Bahia':               ['Axé pra você!', 'Que maravilha!', 'Eita que bom!'],
+  'Rio Grande do Sul':   ['Tchê, bah!', 'Gaúcha de fibra!', 'Bah, que tri!'],
+  'Ceará':               ['Oxente, que massa!', 'Vixe, bem-vinda!', 'Arrasou, véi!'],
+  'Pernambuco':          ['Oxe, que alegria!', 'Vixe, chegou!', 'Arrasou!'],
+  'Pará':                ['Égua, que bom!', 'Tá bom demais!', 'Arrasou!'],
+  'Amazonas':            ['Bem-vinda da floresta!', 'Que surpresa boa!'],
+  'default':             ['Que alegria!', 'Bem-vinda!', 'Que bom te ver!'],
+};
+
+function saudacaoRegional(estado) {
+  const lista = saudacoesRegionais[estado] || saudacoesRegionais['default'];
+  return lista[Math.floor(Math.random() * lista.length)];
+}
+
+// ─── ENTRAR (após digitar nome) ────────────────────────
+async function entrar() {
+  const input = document.getElementById('input-nome');
+  const nome = input.value.trim();
+  if (!nome) {
+    input.style.borderColor = '#FC8181';
+    input.placeholder = 'Ei, me fala seu nome primeiro! 😄';
+    input.focus();
+    setTimeout(() => { input.style.borderColor = ''; }, 1500);
+    return;
+  }
+
+  nomeUsuario = nome.charAt(0).toUpperCase() + nome.slice(1).toLowerCase();
+
+  // Inicia geolocalização em paralelo
+  const geoPromise = detectarLocalizacao();
+
+  // Anima saída da tela de nome
+  document.getElementById('tela-nome').classList.add('saindo');
+  setTimeout(() => {
+    document.getElementById('tela-nome').style.display = 'none';
+  }, 600);
+
+  // Mostra conteúdo
+  const conteudo = document.getElementById('conteudo');
+  conteudo.classList.add('visivel');
+
+  // Preenche nome em todos os campos
+  preencherNomes(nomeUsuario);
+
+  // Aguarda geo e atualiza pill
+  const geo = await geoPromise;
+  if (geo) {
+    document.getElementById('geo-texto').textContent = geo;
+    // Atualiza subtítulo com saudação regional se BR
+    try {
+      const r2 = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(3000) });
+      if (r2.ok) {
+        const d2 = await r2.json();
+        const estado = d2.region || '';
+        const saudacao = saudacaoRegional(estado);
+        document.getElementById('sub-saudacao').textContent =
+          `${saudacao} Preparei tudo isso especialmente pra você.`;
+      }
+    } catch(_) {}
+  } else {
+    document.getElementById('geo-texto').textContent = 'Localização detectada 📡';
+  }
+
+  // Anima cards com delay escalonado
+  ['card1','card2','card3','card4'].forEach((id, i) => {
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      el.classList.add('visivel');
+    }, 200 + i * 180);
+  });
+}
+
+// ─── PREENCHE NOME EM TODOS OS CAMPOS ──────────────────
+function preencherNomes(nome) {
+  document.getElementById('titulo-saudacao').textContent = `Olá, ${nome}! 👋`;
+
+  // Subtítulo base (será sobrescrito pela saudação regional depois)
+  document.getElementById('sub-saudacao').textContent =
+    `Que bom te ver por aqui, ${nome}. Preparei tudo isso especialmente pra você.`;
+
+  // Nomes nos cards
+  document.getElementById('nome-card1').textContent = nome;
+  document.getElementById('nome-card2').textContent = nome;
+  document.getElementById('nome-card3').textContent = nome;
+  document.getElementById('nome-card4').textContent = nome;
+  document.getElementById('nome-aviso').textContent = nome;
+  document.getElementById('nome-wpp').textContent = nome;
+  document.getElementById('nome-dica-wpp').textContent = nome;
+
+  // Atualiza link do WhatsApp com nome na mensagem
+  const msg = encodeURIComponent(`Marcelo, quero esse número para IA. Me chamo ${nome}.`);
+  document.getElementById('btn-wpp').href = `https://wa.me/5531987938874?text=${msg}`;
+}
+
+// ─── ENTER no campo de nome ────────────────────────────
+document.getElementById('input-nome').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') entrar();
+});
+
+// Foco automático
+window.addEventListener('load', () => {
+  setTimeout(() => document.getElementById('input-nome').focus(), 400);
+});
+</script>
+
+</body>
+</html>
